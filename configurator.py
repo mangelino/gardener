@@ -1,22 +1,29 @@
 
 import json
-from gg_config import config
+#from gg_config import config
 import boto3
 from itertools import chain
 import uuid
 import re
 import sys
 
+class Config:
+    def __init__(self, file):
+        f=open(file)
+        dictionary=json.load(f)
+        f.close()
+        for k,v in dictionary.items():
+            setattr(self, k, v)
+
 class Greengrass:
     _thingRegex = re.compile('thing:(?P<thing>\w+)')
     _shadowRegex = re.compile('shadow:(?P<thing>\w+):(?P<op>[\w/]+)')
     _lambdaRegex = re.compile('lambda:(?P<lambda>\w+)')
     
-    def __init__(self, config):
-        self.config = config
-        self.ggcms = boto3.client('ggcms', region_name='us-west-2')
+    def __init__(self, configfile='config.json'):
+        self.config = Config(configfile)
+        self.gg = boto3.client('greengrass', region_name='us-west-2')
         self.iot = boto3.client('iot', region_name='us-west-2')
-        self.ggcds = boto3.client('ggcds', region_name='us-west-2')
 
     def _createThing(self, name):
         res = self.iot.create_thing(thingName = name)
@@ -105,22 +112,22 @@ class Greengrass:
 
     def _createCoreList(self):
         coreListId=None
-        name = config.Group+"_core_list"
-        cores = [x['Id'] for x in self.ggcms.list_core_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        name = self.config.Group+"_core_list"
+        cores = [x['Id'] for x in self.gg.list_core_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
         if len(cores)>1:
             print('More than 1 core with name {0} exists'.format(name))
             return False
         elif len(cores) == 1:
             coreListId = cores[0]
         else:
-            res = self.ggcms.create_core_list(Name=name)
+            res = self.gg.create_core_list(Name=name)
             coreListId = res['Id']
             print('Create core list {0}'.format(coreListId))
 
         self._ggc = self._createThing(config.Core)
         modelList = self._getModelList([{'thingArn':self._ggc['thingArn'], 'syncShadow': True, 'certArn':self._ggc['certArn']}])
 
-        res = self.ggcms.create_core_list_version(CoreId=coreListId, coresModelList=modelList)
+        res = self.gg.create_core_list_version(CoreId=coreListId, coresModelList=modelList)
         self.coreListArn = res['Arn']
         print('Created core list version {0}'.format(self.coreListArn))
         return True
@@ -128,19 +135,19 @@ class Greengrass:
     def _createDeviceList(self):
         deviceListId = None
         name = "{0}_DeviceList".format(self.config.Group)
-        devices = [x['Id'] for x in self.ggcms.list_device_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        devices = [x['Id'] for x in self.gg.list_device_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
         if len(devices)>1:
             print('More than 1 device list with name {0} exists'.format(name))
             return False
         elif len(devices)==1:
             deviceListId=devices[0]
         else:           
-            res = self.ggcms.create_device_list(Name=name)
+            res = self.gg.create_device_list(Name=name)
             deviceListId = res['Id']
             print("Created device list {0}".format(deviceListId))
 
         self._things = [dict(chain(self._createThing(t['name']).items(), t.items())) for t in self.config.Things]
-        res = self.ggcms.create_device_list_version(DeviceId=deviceListId, devicesModelList=self._getModelList(self._things))
+        res = self.gg.create_device_list_version(DeviceId=deviceListId, devicesModelList=self._getModelList(self._things))
         self.deviceListArn = res['Arn']
         print('Create device list version {0}'.format(self.deviceListArn))
         return True
@@ -148,18 +155,18 @@ class Greengrass:
     def _createLambdaList(self):
         lambdaListId = None
         name = self.config.Group+"_LambdaList"
-        lambdas = [x['Id'] for x in self.ggcms.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        lambdas = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
         if len(lambdas)>1:
             print('More than 1 lambda list exist with name {0}'.format(name))
             return False
         elif len(lambdas)==1:
             lambdaListId = lambdas[0]
         else:
-            res = self.ggcms.create_lambda_list(Name=name)
+            res = self.gg.create_lambda_list(Name=name)
             lambdaListId = res['Id']
             print('Created lambda list {0}'.format(lambdaListId))
 
-        res = self.ggcms.create_lambda_list_version(LambdasId=lambdaListId, lambdaModelsList=self._getFunctionList(self.config.Lambdas))
+        res = self.gg.create_lambda_list_version(LambdasId=lambdaListId, lambdaModelsList=self._getFunctionList(self.config.Lambdas))
         self.lambdaListArn = res['Arn']
         print('Creates lambda list version {0}'.format(self.lambdaListArn))
         return True
@@ -167,7 +174,7 @@ class Greengrass:
     def _createSubscriptionList(self):
         subscriptionId = None
         name = self.config.Group+"_SubscriptionList"
-        subs = [x['Id'] for x in self.ggcms.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        subs = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
         if len(subs) > 1:
             print('More than 1 subscription lists with name {0} exists'.format(name))
             return False
@@ -175,18 +182,18 @@ class Greengrass:
             subscriptionId = subs[0]
             print('Subscription list {0} already exists with id {1}. Reusing it.'.format(name, subscriptionId))
         else:
-            res = self.ggcms.create_subscription_list(Name=name)
+            res = self.gg.create_subscription_list(Name=name)
             subscriptionId = res['Id']
             print('Created subscription list {0}'.format(subscriptionId))
 
-        res = self.ggcms.create_subscription_list_version(SubscriptionsId = subscriptionId, subscriptionModelList=self._getSubscriptionModel(self.config.Routes, self._things))
+        res = self.gg.create_subscription_list_version(SubscriptionsId = subscriptionId, subscriptionModelList=self._getSubscriptionModel(self.config.Routes, self._things))
         self.subscriptionListArn=res['Arn']
         print('Created subscription list version {0}'.format(self.subscriptionListArn))
         return True
 
     def _createLoggingList(self):
         loggingId = None
-        logging = [x['Id'] for x in self.ggcms.list_logging_list()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group+"_Logging"]
+        logging = [x['Id'] for x in self.gg.list_logging_list()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group+"_Logging"]
         if len(logging)>1:
             print ('More than 1 logging list with same name {0} already exists. Rename or delete other groups to continue.'.format(self.Config.Group+'_Logging'))
             return False
@@ -194,17 +201,17 @@ class Greengrass:
             print('Logging list {0} already exists with id {1}. Updating it'.format(self.Config.Group+'_Logging', logging[0]))
             loggingId = groups[0]
         else:
-            res = self.ggcms.create_logging_list(Name=self.config.Group+"_Logging")
+            res = self.gg.create_logging_list(Name=self.config.Group+"_Logging")
             loggingId = res['Id']
             print('Created logging list {0}'.format(loggingId))
         
-        res = self.ggcms.create_logging_list_version(LoggingId=loggingId, loggingModelList=[{"Component":"GreengrassSystem","Level":"DEBUG","Space":"5M","Type": "FileSystem"},{"Component":"Lambda","Level":"DEBUG","Space":"5M","Type": "FileSystem"}])
+        res = self.gg.create_logging_list_version(LoggingId=loggingId, loggingModelList=[{"Component":"GreengrassSystem","Level":"DEBUG","Space":"5M","Type": "FileSystem"},{"Component":"Lambda","Level":"DEBUG","Space":"5M","Type": "FileSystem"}])
         self.loggingListArn = res['Arn']
         print('Created logging list version {0}'.format(self.loggingListArn))
         return True
 
     def _createGGGroup(self):
-        groups = [x['Id'] for x in self.ggcms.list_groups()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group]
+        groups = [x['Id'] for x in self.gg.list_groups()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group]
         if len(groups)>1:
             print('More than 1 group with same name {0} already exists. Rename or delete other groups to continue.'.format(self.Config.Group))
             return False
@@ -212,72 +219,79 @@ class Greengrass:
             print ('Group {0} already exists with id {1}. Updating it'.format(self.Config.Group, groups[0]))
             self.groupId = groups[0]
         else:
-            res = self.ggcms.create_group(Name=self.config.Group)
+            res = self.gg.create_group(Name=self.config.Group)
             self.groupId = res['Id']
             print('Created group {0} with id {1}'.format(self.config.Group, self.groupId))
         
-        res = self.ggcms.create_group_version(GroupId=self.groupId, Cores={'Ref': self.coreListArn}, Devices={'Ref':self.deviceListArn}, 
+        res = self.gg.create_group_version(GroupId=self.groupId, Cores={'Ref': self.coreListArn}, Devices={'Ref':self.deviceListArn}, 
             Lambdas={'Ref': self.lambdaListArn}, Logging={'Ref':self.loggingListArn}, Subscriptions={'Ref':self.subscriptionListArn}, Configuration={'GroupCACert':self._ggc['certArn']})
         self.groupVersion = res['Version']
         print('Created group version {0} {1}'.format(res['Arn'], res['Version']))       
         return True
     
     def _createDeployment(self):
-        res = self.ggcds.create_deployment(DeploymentType='NewDeployment', GroupId=self.groupId, GroupVersion=self.groupVersion)
+        res = self.gg.create_deployment(DeploymentType='NewDeployment', GroupId=self.groupId, GroupVersion=self.groupVersion)
         print('Created deployment {0}'.format(res))
         return True
 
-    def createGreenGrass(self):
-        if self._createCoreList() and self._createDeviceList() and self._createLambdaList() and self._createLoggingList() and self._createSubscriptionList() and self._createGGGroup() and self._createDeployment():
-            print('Execute the followinf command on your Core')
-            print('''sudo sed -e 's/THING_ARN_HERE/{0}' /greengrass/configuration/config.json > /greengrass/configuration/config.json'''.format(self._ggc['thingArn']))
+    def createGreengrass(self):
+        if self._createCoreList() and self._createDeviceList() and self._createLambdaList() and self._createLoggingList() and self._createSubscriptionList() and self._createGGGroup():
+            if _config.Deploy:
+                if self._createDeployment():
+                    print('Execute the followinf command on your Core')
+                    print('''sudo sed -e 's/THING_ARN_HERE/{0}' /greengrass/configuration/config.json > /greengrass/configuration/config.json'''.format(self._ggc['thingArn']))
+                else:
+                    print ('Something went wrong while deploying your Greengrass configuration')
+            else:
+                print('Greengrass has been configured but not deployed. Execute this command to deploy or use the console.')
+                print('aws ggcds --deployement-type "NewDeployment" --group-id {0} --group-version {1}'.format(self.groupId, self.groupVersion))
         else:
-            print("Something went wrong")
+            print("Something went wrong while creating the Greengrass configuration")
 
     def getCurrentConfiguration(self):
-        print(json.dumps(self.ggcms.list_groups()['DefinitionInformationList'], indent=2))
-        print(json.dumps(self.ggcms.list_core_lists()['DefinitionInformationList'], indent=2))
+        print(json.dumps(self.gg.list_groups()['DefinitionInformationList'], indent=2))
+        print(json.dumps(self.gg.list_core_lists()['DefinitionInformationList'], indent=2))
 
     def cleanUpAll(self):
-        groupIds = [x['Id'] for x in self.ggcms.list_groups()['DefinitionInformationList']]
-        coreListIds = [x['Id'] for x in self.ggcms.list_core_lists()['DefinitionInformationList']]
-        deviceListIds = [x['Id'] for x in self.ggcms.list_device_lists()['DefinitionInformationList']]
-        lambdaListIds = [x['Id'] for x in self.ggcms.list_lambda_lists()['DefinitionInformationList']]
-        subscriptionListIds = [x['Id'] for x in self.ggcms.list_subscription_lists()['DefinitionInformationList']]
-        loggingListIds = [x['Id'] for x in self.ggcms.list_logging_lists()['DefinitionInformationList']]
+        groupIds = [x['Id'] for x in self.gg.list_groups()['DefinitionInformationList']]
+        coreListIds = [x['Id'] for x in self.gg.list_core_lists()['DefinitionInformationList']]
+        deviceListIds = [x['Id'] for x in self.gg.list_device_lists()['DefinitionInformationList']]
+        lambdaListIds = [x['Id'] for x in self.gg.list_lambda_lists()['DefinitionInformationList']]
+        subscriptionListIds = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList']]
+        loggingListIds = [x['Id'] for x in self.gg.list_logging_lists()['DefinitionInformationList']]
         print('Cleaning up groups...')
         for x in groupIds:
             try:
                 print(x)
-                self.ggcms.delete_group(GroupId=x)
+                self.gg.delete_group(GroupId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up cores...')
         for x in coreListIds:
             try:
                 print(x)
-                self.ggcms.delete_core_list(CoreId=x)
+                self.gg.delete_core_list(CoreId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up devices...')
         for x in deviceListIds:
             try:
                 print(x)
-                self.ggcms.delete_device_list(DeviceId=x)
+                self.gg.delete_device_list(DeviceId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up lambdas...')
         for x in lambdaListIds:
             try:
                 print(x)
-                self.ggcms.delete_lambda_list(LambdaId=x)
+                self.gg.delete_lambda_list(LambdaId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up subscriptions...')
         for x in subscriptionListIds:
             try:
                 print(x)
-                self.ggcms.delete_subscription_list(SubscritpionId=x)
+                self.gg.delete_subscription_list(SubscritpionId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up logging...')
