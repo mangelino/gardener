@@ -113,7 +113,7 @@ class Greengrass:
     def _createCoreList(self):
         coreListId=None
         name = self.config.Group+"_core_list"
-        cores = [x['Id'] for x in self.gg.list_core_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        cores = [x['Id'] for x in self.gg.list_core_definitions()['Definitions'] if 'Name' in x and x['Name']==name]
         if len(cores)>1:
             print('More than 1 core with name {0} exists'.format(name))
             return False
@@ -135,7 +135,7 @@ class Greengrass:
     def _createDeviceList(self):
         deviceListId = None
         name = "{0}_DeviceList".format(self.config.Group)
-        devices = [x['Id'] for x in self.gg.list_device_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        devices = [x['Id'] for x in self.gg.list_device_definitions()['Definitions'] if 'Name' in x and x['Name']==name]
         if len(devices)>1:
             print('More than 1 device list with name {0} exists'.format(name))
             return False
@@ -155,7 +155,7 @@ class Greengrass:
     def _createLambdaList(self):
         lambdaListId = None
         name = self.config.Group+"_LambdaList"
-        lambdas = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        lambdas = [x['Id'] for x in self.gg.list_subscription_definitions()['Definitions'] if 'Name' in x and x['Name']==name]
         if len(lambdas)>1:
             print('More than 1 lambda list exist with name {0}'.format(name))
             return False
@@ -174,7 +174,7 @@ class Greengrass:
     def _createSubscriptionList(self):
         subscriptionId = None
         name = self.config.Group+"_SubscriptionList"
-        subs = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList'] if 'Name' in x and x['Name']==name]
+        subs = [x['Id'] for x in self.gg.list_subscription_definitions()['Definitions'] if 'Name' in x and x['Name']==name]
         if len(subs) > 1:
             print('More than 1 subscription lists with name {0} exists'.format(name))
             return False
@@ -193,7 +193,7 @@ class Greengrass:
 
     def _createLoggingList(self):
         loggingId = None
-        logging = [x['Id'] for x in self.gg.list_logging_list()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group+"_Logging"]
+        logging = [x['Id'] for x in self.gg.list_logging_definitions()['Definitions'] if 'Name' in x and x['Name']==self.Config.Group+"_Logging"]
         if len(logging)>1:
             print ('More than 1 logging list with same name {0} already exists. Rename or delete other groups to continue.'.format(self.Config.Group+'_Logging'))
             return False
@@ -211,7 +211,7 @@ class Greengrass:
         return True
 
     def _createGGGroup(self):
-        groups = [x['Id'] for x in self.gg.list_groups()['DefinitionInformationList'] if 'Name' in x and x['Name']==self.Config.Group]
+        groups = [x['Id'] for x in self.gg.list_groups()['Groups'] if 'Name' in x and x['Name']==self.Config.Group]
         if len(groups)>1:
             print('More than 1 group with same name {0} already exists. Rename or delete other groups to continue.'.format(self.Config.Group))
             return False
