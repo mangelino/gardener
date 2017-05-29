@@ -51,8 +51,8 @@ class Greengrass:
         return {'thingArn':thingArn, 'certArn': certArn}
 
 
-    def _getFunctionList(self, fn_list):
-        return [{"FunctionArn":x['arn']} for x in fn_list]
+    def _getFunctionList(self, fn_definition):
+        return [{"FunctionArn":x['arn']} for x in fn_definition]
 
 
     def _getModelList(self, things):
@@ -112,7 +112,7 @@ class Greengrass:
 
     def _createCoreList(self):
         coreListId=None
-        name = self.config.Group+"_core_list"
+        name = self.config.Group+"_core_definition"
         cores = [x['Id'] for x in self.gg.list_core_definitions()['Definitions'] if 'Name' in x and x['Name']==name]
         if len(cores)>1:
             print('More than 1 core with name {0} exists'.format(name))
@@ -120,14 +120,14 @@ class Greengrass:
         elif len(cores) == 1:
             coreListId = cores[0]
         else:
-            res = self.gg.create_core_list(Name=name)
+            res = self.gg.create_core_definition(Name=name)
             coreListId = res['Id']
             print('Create core list {0}'.format(coreListId))
 
         self._ggc = self._createThing(config.Core)
         modelList = self._getModelList([{'thingArn':self._ggc['thingArn'], 'syncShadow': True, 'certArn':self._ggc['certArn']}])
 
-        res = self.gg.create_core_list_version(CoreId=coreListId, coresModelList=modelList)
+        res = self.gg.create_core_definition_version(CoreId=coreListId, coresModelList=modelList)
         self.coreListArn = res['Arn']
         print('Created core list version {0}'.format(self.coreListArn))
         return True
@@ -142,12 +142,12 @@ class Greengrass:
         elif len(devices)==1:
             deviceListId=devices[0]
         else:           
-            res = self.gg.create_device_list(Name=name)
+            res = self.gg.create_device_definition(Name=name)
             deviceListId = res['Id']
             print("Created device list {0}".format(deviceListId))
 
         self._things = [dict(chain(self._createThing(t['name']).items(), t.items())) for t in self.config.Things]
-        res = self.gg.create_device_list_version(DeviceId=deviceListId, devicesModelList=self._getModelList(self._things))
+        res = self.gg.create_device_definition_version(DeviceId=deviceListId, devicesModelList=self._getModelList(self._things))
         self.deviceListArn = res['Arn']
         print('Create device list version {0}'.format(self.deviceListArn))
         return True
@@ -162,11 +162,11 @@ class Greengrass:
         elif len(lambdas)==1:
             lambdaListId = lambdas[0]
         else:
-            res = self.gg.create_lambda_list(Name=name)
+            res = self.gg.create_lambda_definition(Name=name)
             lambdaListId = res['Id']
             print('Created lambda list {0}'.format(lambdaListId))
 
-        res = self.gg.create_lambda_list_version(LambdasId=lambdaListId, lambdaModelsList=self._getFunctionList(self.config.Lambdas))
+        res = self.gg.create_lambda_definition_version(LambdasId=lambdaListId, lambdaModelsList=self._getFunctionList(self.config.Lambdas))
         self.lambdaListArn = res['Arn']
         print('Creates lambda list version {0}'.format(self.lambdaListArn))
         return True
@@ -182,11 +182,11 @@ class Greengrass:
             subscriptionId = subs[0]
             print('Subscription list {0} already exists with id {1}. Reusing it.'.format(name, subscriptionId))
         else:
-            res = self.gg.create_subscription_list(Name=name)
+            res = self.gg.create_subscription_definition(Name=name)
             subscriptionId = res['Id']
             print('Created subscription list {0}'.format(subscriptionId))
 
-        res = self.gg.create_subscription_list_version(SubscriptionsId = subscriptionId, subscriptionModelList=self._getSubscriptionModel(self.config.Routes, self._things))
+        res = self.gg.create_subscription_definition_version(SubscriptionsId = subscriptionId, subscriptionModelList=self._getSubscriptionModel(self.config.Routes, self._things))
         self.subscriptionListArn=res['Arn']
         print('Created subscription list version {0}'.format(self.subscriptionListArn))
         return True
@@ -201,11 +201,11 @@ class Greengrass:
             print('Logging list {0} already exists with id {1}. Updating it'.format(self.Config.Group+'_Logging', logging[0]))
             loggingId = groups[0]
         else:
-            res = self.gg.create_logging_list(Name=self.config.Group+"_Logging")
+            res = self.gg.create_logging_definition(Name=self.config.Group+"_Logging")
             loggingId = res['Id']
             print('Created logging list {0}'.format(loggingId))
         
-        res = self.gg.create_logging_list_version(LoggingId=loggingId, loggingModelList=[{"Component":"GreengrassSystem","Level":"DEBUG","Space":"5M","Type": "FileSystem"},{"Component":"Lambda","Level":"DEBUG","Space":"5M","Type": "FileSystem"}])
+        res = self.gg.create_logging_definition_version(LoggingId=loggingId, loggingModelList=[{"Component":"GreengrassSystem","Level":"DEBUG","Space":"5M","Type": "FileSystem"},{"Component":"Lambda","Level":"DEBUG","Space":"5M","Type": "FileSystem"}])
         self.loggingListArn = res['Arn']
         print('Created logging list version {0}'.format(self.loggingListArn))
         return True
@@ -250,15 +250,15 @@ class Greengrass:
 
     def getCurrentConfiguration(self):
         print(json.dumps(self.gg.list_groups()['DefinitionInformationList'], indent=2))
-        print(json.dumps(self.gg.list_core_lists()['DefinitionInformationList'], indent=2))
+        print(json.dumps(self.gg.list_core_definitions()['DefinitionInformationList'], indent=2))
 
     def cleanUpAll(self):
         groupIds = [x['Id'] for x in self.gg.list_groups()['DefinitionInformationList']]
-        coreListIds = [x['Id'] for x in self.gg.list_core_lists()['DefinitionInformationList']]
-        deviceListIds = [x['Id'] for x in self.gg.list_device_lists()['DefinitionInformationList']]
-        lambdaListIds = [x['Id'] for x in self.gg.list_lambda_lists()['DefinitionInformationList']]
-        subscriptionListIds = [x['Id'] for x in self.gg.list_subscription_lists()['DefinitionInformationList']]
-        loggingListIds = [x['Id'] for x in self.gg.list_logging_lists()['DefinitionInformationList']]
+        coreListIds = [x['Id'] for x in self.gg.list_core_definitions()['DefinitionInformationList']]
+        deviceListIds = [x['Id'] for x in self.gg.list_device_definitions()['DefinitionInformationList']]
+        lambdaListIds = [x['Id'] for x in self.gg.list_lambda_definitions()['DefinitionInformationList']]
+        subscriptionListIds = [x['Id'] for x in self.gg.list_subscription_definitions()['DefinitionInformationList']]
+        loggingListIds = [x['Id'] for x in self.gg.list_logging_definitions()['DefinitionInformationList']]
         print('Cleaning up groups...')
         for x in groupIds:
             try:
@@ -270,35 +270,35 @@ class Greengrass:
         for x in coreListIds:
             try:
                 print(x)
-                self.gg.delete_core_list(CoreId=x)
+                self.gg.delete_core_definition(CoreId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up devices...')
         for x in deviceListIds:
             try:
                 print(x)
-                self.gg.delete_device_list(DeviceId=x)
+                self.gg.delete_device_definition(DeviceId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up lambdas...')
         for x in lambdaListIds:
             try:
                 print(x)
-                self.gg.delete_lambda_list(LambdaId=x)
+                self.gg.delete_lambda_definition(LambdaId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up subscriptions...')
         for x in subscriptionListIds:
             try:
                 print(x)
-                self.gg.delete_subscription_list(SubscritpionId=x)
+                self.gg.delete_subscription_definition(SubscritpionId=x)
             except:
                 print('Unable to delete')
         print('Cleaning up logging...')
         for x in loggingListIds:
             try:
                 print(x)
-                seld.ggcms.delete_logging_list(LoggingId=x)
+                seld.ggcms.delete_logging_definition(LoggingId=x)
             except:
                 print('Unable to delete')
 
