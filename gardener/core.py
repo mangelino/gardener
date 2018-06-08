@@ -1,8 +1,8 @@
-from gardener.entity import EntityDefinition
-from gardener.thing import Thing
+from .entity import EntityDefinition
+from .thing import Thing
 from itertools import chain
 import json
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
 
 class CoreDefinition(EntityDefinition):
     """

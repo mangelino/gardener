@@ -1,6 +1,6 @@
 
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
-from gardener.utils import dicSlice
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .utils import dicSlice
 
 class GroupDefinition:
     def __init__(self, gg, config, core, devices, functions, loggers, subscriptions):

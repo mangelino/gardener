@@ -1,5 +1,5 @@
-from gardener.logging import logError, logInfo, logRecycle, logSuccess
-from gardener.utils import dicSlice, hashDict, compareDict 
+from .logging import logError, logInfo, logRecycle, logSuccess
+from .utils import dicSlice, hashDict, compareDict 
 
 class EntityDefinition: 
     def __init__(self, gg, config):

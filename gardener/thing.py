@@ -1,9 +1,9 @@
 
 import boto3
 import json
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
 import uuid
-from gardener.globals import CERT_POSTFIX, KEY_POSTFIX
+from .globals import CERT_POSTFIX, KEY_POSTFIX
 
 class Thing():
 

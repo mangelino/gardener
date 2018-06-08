@@ -1,7 +1,7 @@
-from gardener.entity import EntityDefinition
+from .entity import EntityDefinition
 import uuid
 import json
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
 
 
 class FunctionDefinition(EntityDefinition):

@@ -3,16 +3,16 @@ import boto3
 
 import uuid
 import re
-from gardener.config import Config
-from gardener.utils import jsonPP, dicSlice
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
-from gardener.globals import CERT_POSTFIX, KEY_POSTFIX
-from gardener.core import CoreDefinition
-from gardener.function import FunctionDefinition
-from gardener.device import DeviceDefinition
-from gardener.logger import LoggerDefinition
-from gardener.subscription import SubscriptionDefinition
-from gardener.group import GroupDefinition
+from .config import Config
+from .utils import jsonPP, dicSlice
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .globals import CERT_POSTFIX, KEY_POSTFIX
+from .core import CoreDefinition
+from .function import FunctionDefinition
+from .device import DeviceDefinition
+from .logger import LoggerDefinition
+from .subscription import SubscriptionDefinition
+from .group import GroupDefinition
 
 class Gardener:
     def __init__(self, configfile='config.json'):

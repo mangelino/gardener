@@ -1,8 +1,8 @@
-from gardener.entity import EntityDefinition
+from .entity import EntityDefinition
 import uuid
 import json
 from itertools import chain
-from gardener.logging import logError, logInfo, logRecycle, logSuccess, logDebug
+from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
 import re
 
 
