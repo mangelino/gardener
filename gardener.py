@@ -519,7 +519,8 @@ class Gardener:
     #     return True
     
     def _createDeployment(self):
-        res = self.gg.create_deployment(DeploymentType='NewDeployment', GroupId=self.groupId, GroupVersion=self.groupVersion)
+        res = self.gg.create_deployment(DeploymentType='NewDeployment', GroupId=self.groupId, GroupVersionId=self.groupVersion)
+        res.pop('ResponseMetadata')
         logSuccess('Created deployment {0}'.format(res))
         return True
 
@@ -533,8 +534,8 @@ class Gardener:
         if self.core.create() and self.devices.create() and self.functions.create() and self.loggers.create() and self.subscriptions.create() and self._createGGGroup():
             if self.config.Group['deploy']:
                 if self._createDeployment():
-                    print('Execute the following command on your Core')
-                    print('''sudo sed -e 's/THING_ARN_HERE/{0}' /greengrass/configuration/config.json > /greengrass/configuration/config.json'''.format(self.core.arn))
+                    print('\nExecute the following command on your Core')
+                    print('''sudo sed -e 's/THING_ARN_HERE/{0}' /greengrass/configuration/config.json > /greengrass/configuration/config.json'''.format(self.core.arn.replace('/', '\/')))
                 else:
                     print ('Something went wrong while deploying your Greengrass configuration')
             else:
