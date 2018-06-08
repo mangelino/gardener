@@ -1,0 +1,12 @@
+Package         Version
+--------------- -------
+boto3           1.7.12 
+botocore        1.10.12
+docutils        0.14   
+jmespath        0.9.3  
+pip             10.0.1 
+python-dateutil 2.7.2  
+s3transfer      0.1.13 
+setuptools      39.1.0 
+six             1.11.0 
+wheel           0.31.0 
