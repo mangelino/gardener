@@ -1,0 +1,98 @@
+{
+    "Region": "<REGION>",
+    "Cores": {
+        "core1": {
+            "name": "<CORE_NAME>",
+            "syncShadow": true,
+            "policy": "thing_policy"
+        }
+    },
+    "Group": {
+        "name": "<GROUP_NAME>",
+        "roleArn": "<GREENGRASS_SERVICE_ROLE>",
+        "deploy": false
+    },
+    "Things": {
+        "thing1": {
+            "name": "<THING_NAME>",
+            "syncShadow": true,
+            "policy": "thing_policy"
+        },
+        "thing2": {
+            "name": "<THING_NAME>",
+            "syncShadow": false,
+            "policy": "thing_policy"
+        }
+    },
+    "Lambdas": {
+        "lambda1": {
+            "arn": "<LAMBDA_ARN>",
+            "FunctionConfiguration": {
+                "Executable": "lambda.handler",
+                "MemorySize": 128000,
+                "Timeout": 3
+            }
+        },
+        "lamnda2": {
+            "arn": "<LAMBDA_ARN>",
+            "FunctionConfiguration": {
+                "Executable": "lambda.handler",
+                "MemorySize": 128000,
+                "Timeout": 3
+            }
+        }
+    },
+    "Routes": [
+        {
+            "Source": "GGShadowService",
+            "Subject": "shadow:thing1:/update/rejected",
+            "Target": "thing:thing2"
+        },
+        {
+            "Source": "thing:thing2",
+            "Subject": "topic/state",
+            "Target": "lambda:lambda1"
+        },
+        {
+            "Source": "lambda:lambda1",
+            "Subject": "topic/metering",
+            "Target": "cloud"
+        },
+        {
+            "Source": "thing:thing2",
+            "Subject": "shadow:thing1:/update",
+            "Target": "GGShadowService"
+        }
+    ],
+    "Loggers": [
+        {
+            "Component": "GreengrassSystem",
+            "Level": "DEBUG",
+            "Space": 5000,
+            "Type": "FileSystem"
+        },
+        {
+            "Component": "Lambda",
+            "Level": "DEBUG",
+            "Space": 5000,
+            "Type": "FileSystem"
+        }
+    ],
+    "Policies": {
+        "thing_policy": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "iot:*",
+                        "greengrass:*"
+                    ],
+                    "Resource": [
+                        "*"
+                    ]
+                }
+            ]
+        }
+    }
+}
