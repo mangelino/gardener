@@ -1,6 +1,9 @@
 import json
 
 class Config:
+    """
+    This class is created dynamically based the json file which is passed to it
+    """
     Cores = {}
     Group = {}
     Things = {}
