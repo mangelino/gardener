@@ -3,7 +3,6 @@ import boto3
 
 import uuid
 import re
-from .config import Config
 from .utils import jsonPP, dicSlice
 from .logging import logError, logInfo, logRecycle, logSuccess, logDebug
 from .globals import CERT_POSTFIX, KEY_POSTFIX
@@ -15,8 +14,8 @@ from .subscription import SubscriptionDefinition
 from .group import GroupDefinition
 
 class Gardener:
-    def __init__(self, configfile='config.json'):
-        self.config = Config(configfile)
+    def __init__(self, config):
+        self.config = config
         self.gg = boto3.client('greengrass', region_name=self.config.Region)
     
     def _createDeployment(self):

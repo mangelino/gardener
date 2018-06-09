@@ -120,9 +120,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.config:
-        gg = Gardener(args.config)
+        config = Config(args.config)
+        gg = Gardener(config)
     else:
-        gg = Gardener()
+        config = Config()
+        gg = Gardener(config)
     if args.subparser_name == 'deploy': 
         print (gg.createGreengrass())
     elif args.subparser_name == 'listGroups':
