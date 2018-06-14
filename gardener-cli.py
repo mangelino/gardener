@@ -123,7 +123,7 @@ if __name__ == '__main__':
         config = Config(args.config)
         gg = Gardener(config)
     else:
-        config = Config()
+        config = Config('config.json')
         gg = Gardener(config)
     if args.subparser_name == 'deploy': 
         print (gg.createGreengrass())
